@@ -36,6 +36,27 @@ function enemy_death_animation(targetted_enemy, frame)
     end
 end
 
+function status_change(status, frame)
+    global STATUS_LABEL
+    
+    if(status == "MISS")
+        st = TextActor("MISS", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=220, y = 484)
+    elseif(status == "HIT")
+        st = TextActor("HIT", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=230, y = 484)
+    end
+
+    if frame < 20
+        if frame % 2 == 0
+            STATUS_LABEL = st
+        else
+            STATUS_LABEL = TextActor(" ", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=220, y = 484)
+        end
+        schedule_once(() -> status_change(status, frame + 1), 0.1)
+    else
+        STATUS_LABEL = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
+    end
+end
+
 function update_inp(text)
     if(text == "") text = " " end
     return TextActor(text, "helvetica", font_size = 40, color = Int[106, 190, 48, 255], x=120, y=600)
@@ -72,9 +93,7 @@ for enemy in enemies
     enemy.pos = set_target_pos!(enemy)
     enemy.speed = rand()/4
     enemy.rsize = 5.5
-
-    enemy.time_start = time()
-    enemy.time_passed = 0
+    enemy.status = "ACTIVE"
 end
 
 # Cross hair
@@ -109,12 +128,11 @@ statics = [
     TextActor(">>> Status", "helvetica", font_size = 17, color = Int[106, 190, 48, 255], x=30, y = 484),
     TextActor(">>> Input launch code", "helvetica", font_size = 17, color = Int[106, 190, 48, 255], x=30, y=550)
     ]
-# STATUS_LABEL = TextActor("HIT", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=230, y = 484)
-# STATUS_LABEL = TextActor("HIT", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=230, y = 484)
+    
 STATUS_LABEL = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
 
 function on_key_down(g, key)
-    global input_txt, input_disp, enemies, target, passwords, passwords_disp, targetted_enemy
+    global input_txt, input_disp, enemies, target, passwords, passwords_disp
 
     elt = string(key)
     # if letter, type
@@ -127,17 +145,30 @@ function on_key_down(g, key)
     
     # submit input 
     elseif(elt == "RETURN")
+        enemy_hit_count = 0
         for enemy in enemies
             if (input_txt in passwords && collide(target, enemy))
+                enemy.status = "INACTIVE"
+                status_change("HIT", 0)
+                # enemy_death_animation(enemy, 0)
+                filter!(e->e≠enemy, enemies)
 
-                enemy_death_animation(enemy, 0)
                 filter!(e->e≠input_txt, passwords)
                 push!(passwords, randstring(['Q', 'W', 'E', 'A', 'S', 'D'], PWD_LENGTH))
                 refresh_passwords!()
+
+                enemy_hit_count += 1
                 break
             end
         end
         
+        if(enemy_hit_count == 0) 
+            status_change("MISS", 0)
+            filter!(e->e≠input_txt, passwords)
+            push!(passwords, randstring(['Q', 'W', 'E', 'A', 'S', 'D'], PWD_LENGTH))
+            refresh_passwords!()
+        end
+
         input_txt = ""
     end
     
@@ -178,6 +209,13 @@ function update(g::Game)
     global base_health, HEALTH_LABEL, HEALTH_BAR, STATUS_LABEL
 
     for enemy in enemies
+        
+        if(collide(target, enemy) && enemy.status == "ACTIVE")
+            enemy.image = "enemy_selected.png"
+        elseif (enemy.status == "ACTIVE")
+            enemy.image = "enemy.png"
+        end
+
         enemy.rad = clamp(enemy.rad - enemy.speed, 0, MAX_RAD)
         set_target_pos!(enemy)
 
@@ -196,11 +234,6 @@ end
 function draw()
     draw(background)
     for enemy in enemies
-        # if((time() - enemy.time_start) > 0.5 && (time() - enemy.time_start + enemy.time_delay) < 1.0)
-        #     draw(enemy)
-        # elseif (time() - enemy.time_start + enemy.time_delay) >= 1.0
-        #     enemy.time_start = time()
-        # end
         draw(enemy)
     end
     
