@@ -14,13 +14,27 @@ ANG_SPEED = 0.02
 BOOST = 2.0
 DAMP = 0.1
 
-BASE_RADIUS = 30
+BASE_RADIUS = 20
 PWD_LENGTH = 4
 
 SPAWN_LIMS = [400, 1100, 30, 600]
 # [376, 1128, 8, 628]
 MOVE_LIMS = [0, 1128, 8, 628]
 CENTER = [764, 334]
+
+function enemy_death_animation(targetted_enemy, frame)
+    global enemies
+    if frame < 15
+        if frame % 2 == 0
+            targetted_enemy.image = "enemy_damaged.png"
+        else
+            targetted_enemy.image = "enemy_empty.png"
+        end
+        schedule_once(() -> enemy_death_animation(targetted_enemy, frame + 1), 0.02 * (15 - frame))
+    else
+        filter!(e->e≠targetted_enemy, enemies)
+    end
+end
 
 function update_inp(text)
     if(text == "") text = " " end
@@ -42,17 +56,22 @@ function refresh_passwords!()
     )
 end
 
+function is_hit(target, enemy)
+    return (target.pos[1] - enemy.pos[1])^2 + (target.pos[2] - enemy.pos[2])^2 <= (target.rsize + enemy.rsize)^2
+end
+
 
 # Background
 background = Actor("background")
 
 # Enemies
-enemies = [Actor("enemy", time_start = time(), time_passed = 0, time_delay = rand()/2) for i in 1:5]
+enemies = [Actor("enemy", time_start = time(), time_passed = 0, time_delay = rand()/2) for i in 1:20]
 for enemy in enemies
     enemy.anchor = CENTER
     enemy.rad, enemy.ang = rand(MIN_RAD:MAX_RAD), 6.28 * rand()
     enemy.pos = set_target_pos!(enemy)
     enemy.speed = rand()/4
+    enemy.rsize = 5.5
 
     enemy.time_start = time()
     enemy.time_passed = 0
@@ -62,6 +81,7 @@ end
 target = Actor("crosshair")
 target.rad, target.ang = 200, 120
 target.anchor = CENTER
+target.rsize = 7.0
 set_target_pos!(target)
 
 # Launch code input 
@@ -94,7 +114,7 @@ statics = [
 STATUS_LABEL = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
 
 function on_key_down(g, key)
-    global input_txt, input_disp, enemies, target, passwords, passwords_disp
+    global input_txt, input_disp, enemies, target, passwords, passwords_disp, targetted_enemy
 
     elt = string(key)
     # if letter, type
@@ -107,11 +127,10 @@ function on_key_down(g, key)
     
     # submit input 
     elseif(elt == "RETURN")
-        for (ind, enemy) in enumerate(enemies)
+        for enemy in enemies
             if (input_txt in passwords && collide(target, enemy))
 
-                deleteat!(enemies, ind)
-
+                enemy_death_animation(enemy, 0)
                 filter!(e->e≠input_txt, passwords)
                 push!(passwords, randstring(['Q', 'W', 'E', 'A', 'S', 'D'], PWD_LENGTH))
                 refresh_passwords!()
@@ -156,23 +175,6 @@ function update(g::Game)
 
     set_target_pos!(target)
 
-    # sp = TARGET_SPEED1
-    # if(g.keyboard.UP)
-    #     target.y = clamp(target.y - sp, MOVE_LIMS[3], MOVE_LIMS[4])
-    # end
-    
-    # if(g.keyboard.DOWN)
-    #     target.y =  clamp(target.y + sp, MOVE_LIMS[3], MOVE_LIMS[4])
-    # end
-    
-    # if(g.keyboard.LEFT)
-    #     target.x =  clamp(target.x - sp, MOVE_LIMS[1], MOVE_LIMS[2])
-    # end
-
-    # if(g.keyboard.RIGHT)
-    #     target.x =  clamp(target.x + sp, MOVE_LIMS[1], MOVE_LIMS[2])
-    # end
-
     global base_health, HEALTH_LABEL, HEALTH_BAR, STATUS_LABEL
 
     for enemy in enemies
@@ -181,7 +183,7 @@ function update(g::Game)
 
         if(enemy.rad < BASE_RADIUS)
             filter!(e->e≠enemy, enemies)
-            base_health -= 1
+            base_health = clamp(base_health - 1, 0, 5)
             HEALTH_LABEL = TextActor("Structural Integrity: $(base_health * 20)%", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=1010, y = 80)
             HEALTH_BAR = Actor("health-$(base_health)", x = 1010, y = 30)
         end
