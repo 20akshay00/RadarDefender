@@ -158,6 +158,7 @@ end
 # Background
 background = Actor("background")
 intro_background = Actor("intro_background")
+end_background = Actor("end_background")
 
 # Enemies
 enemies = []
@@ -373,7 +374,12 @@ function update(g::Game)
         end
 
     elseif(GAME_STATUS == -1)
-
+        if g.keyboard.T
+            init_game()
+            GAME_STATUS = 1
+        elseif g.keyboard.Q
+            quit()
+        end
     end
 end
 
@@ -415,6 +421,71 @@ function draw()
         draw(intro_background)    
 
     elseif GAME_STATUS == -1
+        global SCORE, WAVE_NUMBER
         draw(end_background)
+        draw(TextActor("$(SCORE)", "helvetica", font_size = 54, color = Int[106, 190, 48, 255], x=700, y = 234))
+        draw(TextActor("$(WAVE_NUMBER)", "helvetica", font_size = 54, color = Int[106, 190, 48, 255], x= 700, y = 330))
     end
+end
+
+
+
+function init_game()
+    global enemies, target, input_txt, input_disp, passwords, passwords_disp, base_health, BASE, HEALTH_LABEL, HEALTH_BAR, statics, STATUS_LABEL, STATUS, WAVE_NUMBER, WAVE_NUMBER_LABEL, IS_WAVE_TRANSITION, SCORE_LABEL, COMBO_LABEL, COMBO_COUNT, SCORE, BOOM_COUNT, BOOM_FLAG, BOOM_LABEL, BOOM_CIRCLE, IS_BOOM
+    enemies = []
+
+    # Cross hair
+    target = Actor("crosshair")
+    target.rad, target.ang = 200, 120
+    target.anchor = [764, 334]
+    target.rsize = 7.0
+    set_target_pos!(target)
+    
+    # Launch code input 
+    input_txt = ""
+    input_disp = update_inp(input_txt)
+    
+    # Launch codes
+    passwords = [randstring(['Q', 'W', 'E', 'A', 'S', 'D'], PWD_LENGTH) for _ in 1:5]
+    passwords_disp = vcat(
+        [TextActor(">>> cat super_secret_codes.txt", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=20, y=10 + 20)],
+        [TextActor("------------------------------------------------------------------", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=20, y=10 + 40)],
+        [TextActor("$(pwd)", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=20, y=10 + 20 * (i+2)) for (i, pwd) in enumerate(passwords)],
+        [TextActor("------------------------------------------------------------------", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=20, y = 10 + 20 * (length(passwords) + 3))] 
+        )
+    
+    # Base health
+    base_health = 5
+    BASE = Actor("base", x = 768, y = 338)
+    HEALTH_LABEL = TextActor("Structural Integrity: $(base_health * 20)%", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=1007, y = 80)
+    HEALTH_BAR = Actor("health-5", x = 1010, y = 30)
+    
+    # Static elements
+    statics = [
+        TextActor(">>> Status", "helvetica", font_size = 17, color = Int[106, 190, 48, 255], x=30, y = 484),
+        TextActor(">>> Input launch code", "helvetica", font_size = 17, color = Int[106, 190, 48, 255], x=30, y=550)
+        ]
+    
+    # Status bar
+    STATUS_LABEL = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
+    STATUS = "LOCATING"
+    
+    # Wave counter
+    WAVE_NUMBER = 0
+    WAVE_NUMBER_LABEL = TextActor("Wave $(WAVE_NUMBER)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 30)
+    IS_WAVE_TRANSITION = false
+    
+    # Score variables
+    COMBO_COUNT = 0
+    SCORE = 0
+    SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
+    COMBO_LABEL = TextActor("Combo: $(COMBO_COUNT)", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=402, y = 645)
+    
+    # Special ability
+    BOOM_COUNT = 0
+    BOOM_FLAG = 1
+    BOOM_LABEL = TextActor("$(BOOM_COUNT)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=1150, y = 645)
+    IS_BOOM = false
+    BOOM_CIRCLE = nothing
+
 end
