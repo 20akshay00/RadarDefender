@@ -36,23 +36,34 @@ function enemy_death_animation(targetted_enemy, frame)
     end
 end
 
-function status_change(status, frame)
-    global STATUS_LABEL
-    
-    if(status == "MISS")
+function get_status_display(status)
+    if(STATUS == "LOCATING")
+        st = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
+    elseif(STATUS == "MISS")
         st = TextActor("MISS", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=220, y = 484)
-    elseif(status == "HIT")
+    elseif(STATUS == "HIT")
         st = TextActor("HIT", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=230, y = 484)
+    elseif(STATUS == "INVALID")
+        st = TextActor("INVALID CODE", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=177, y = 484)
     end
 
-    if frame < 20
+    return st
+end
+
+function status_change(status_start, frame)
+    global STATUS_LABEL, STATUS
+    
+    if frame < 20 && status_start == STATUS
         if frame % 2 == 0
-            STATUS_LABEL = st
+            STATUS_LABEL = get_status_display(STATUS)
         else
             STATUS_LABEL = TextActor(" ", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=220, y = 484)
         end
-        schedule_once(() -> status_change(status, frame + 1), 0.1)
+        schedule_once(() -> status_change(status_start, frame + 1), 0.1)
+    elseif !(status_start == STATUS)
+        STATUS_LABEL = get_status_display(STATUS)
     else
+        STATUS = "LOCATING"
         STATUS_LABEL = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
     end
 end
@@ -130,9 +141,10 @@ statics = [
     ]
     
 STATUS_LABEL = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
+STATUS = "LOCATING"
 
 function on_key_down(g, key)
-    global input_txt, input_disp, enemies, target, passwords, passwords_disp
+    global input_txt, input_disp, enemies, target, passwords, passwords_disp, STATUS
 
     elt = string(key)
     # if letter, type
@@ -146,9 +158,14 @@ function on_key_down(g, key)
     # submit input 
     elseif(elt == "RETURN")
         enemy_hit_count = 0
+
+        if !(input_txt in passwords) STATUS = "INVALID"; status_change("INVALID", 0) end
+
         for enemy in enemies
             if (input_txt in passwords && collide(target, enemy))
                 enemy.status = "INACTIVE"
+
+                STATUS = "HIT"
                 status_change("HIT", 0)
                 # enemy_death_animation(enemy, 0)
                 filter!(e->e≠enemy, enemies)
@@ -162,7 +179,8 @@ function on_key_down(g, key)
             end
         end
         
-        if(enemy_hit_count == 0) 
+        if(input_txt in passwords && enemy_hit_count == 0)
+            STATUS = "MISS"
             status_change("MISS", 0)
             filter!(e->e≠input_txt, passwords)
             push!(passwords, randstring(['Q', 'W', 'E', 'A', 'S', 'D'], PWD_LENGTH))
@@ -246,7 +264,7 @@ function draw()
     for static in statics
         draw(static)
     end
-
+        
     draw(target)
     draw(HEALTH_LABEL)
     draw(HEALTH_BAR)
