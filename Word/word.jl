@@ -5,8 +5,8 @@ WIDTH = 1200
 TARGET_SPEED1 = 3.5
 TARGET_SPEED2 = 1.0
 
-MIN_RAD = 100
-MAX_RAD = 320
+MIN_RAD = 200
+MAX_RAD = 330
 
 RAD_SPEED = 4.0
 ANG_SPEED = 0.02
@@ -16,11 +16,13 @@ DAMP = 0.1
 
 BASE_RADIUS = 20
 PWD_LENGTH = 4
-
-SPAWN_LIMS = [400, 1100, 30, 600]
-# [376, 1128, 8, 628]
-MOVE_LIMS = [0, 1128, 8, 628]
 CENTER = [764, 334]
+
+HIT_POINT = 10
+MISS_POINT = -10
+INVALID_POINT = -5
+COMBO_MULIPLIER = 1.5
+
 
 function enemy_death_animation(targetted_enemy, frame)
     global enemies
@@ -59,12 +61,36 @@ function status_change(status_start, frame)
         else
             STATUS_LABEL = TextActor(" ", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=220, y = 484)
         end
+
         schedule_once(() -> status_change(status_start, frame + 1), 0.1)
+
     elseif !(status_start == STATUS)
         STATUS_LABEL = get_status_display(STATUS)
     else
         STATUS = "LOCATING"
         STATUS_LABEL = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
+    end
+end
+
+function wave_change_animation(num_enemies, delay, frame)
+    global enemies, WAVE_NUMBER, WAVE_NUMBER_LABEL, IS_WAVE_TRANSITION
+
+    if frame < delay
+        WAVE_NUMBER_LABEL = TextActor("Wave $(WAVE_NUMBER) in $(delay - frame) secs...", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 30)
+        schedule_once(() -> wave_change_animation(num_enemies, delay, frame + 1), 1)
+    else 
+        WAVE_NUMBER_LABEL = TextActor("Wave $(WAVE_NUMBER)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 30)
+        
+        IS_WAVE_TRANSITION = false
+        enemies = [Actor("enemy", time_start = time(), time_passed = 0, time_delay = rand()/2) for i in 1:num_enemies]
+        for enemy in enemies
+            enemy.anchor = CENTER
+            enemy.rad, enemy.ang = rand(MIN_RAD:MAX_RAD), 6.28 * rand()
+            enemy.pos = set_target_pos!(enemy)
+            enemy.speed = rand()/4
+            enemy.rsize = 5.5
+            enemy.status = "ACTIVE"
+        end
     end
 end
 
@@ -97,7 +123,7 @@ end
 background = Actor("background")
 
 # Enemies
-enemies = [Actor("enemy", time_start = time(), time_passed = 0, time_delay = rand()/2) for i in 1:20]
+enemies = [Actor("enemy", time_start = time(), time_passed = 0, time_delay = rand()/2) for i in 1:5]
 for enemy in enemies
     enemy.anchor = CENTER
     enemy.rad, enemy.ang = rand(MIN_RAD:MAX_RAD), 6.28 * rand()
@@ -139,12 +165,25 @@ statics = [
     TextActor(">>> Status", "helvetica", font_size = 17, color = Int[106, 190, 48, 255], x=30, y = 484),
     TextActor(">>> Input launch code", "helvetica", font_size = 17, color = Int[106, 190, 48, 255], x=30, y=550)
     ]
-    
+
+# Status bar
 STATUS_LABEL = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
 STATUS = "LOCATING"
 
+# Wave counter
+WAVE_NUMBER = 1
+WAVE_NUMBER_LABEL = TextActor("Wave $(WAVE_NUMBER)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 30)
+IS_WAVE_TRANSITION = false
+
+# Combo counter
+
+COMBO_COUNT = 0
+SCORE = 0
+SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
+COMBO_LABEL = TextActor("Combo: $(COMBO_COUNT)", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=402, y = 645)
+
 function on_key_down(g, key)
-    global input_txt, input_disp, enemies, target, passwords, passwords_disp, STATUS
+    global input_txt, input_disp, enemies, target, passwords, passwords_disp, STATUS, COMBO_COUNT, SCORE, SCORE_LABEL, COMBO_LABEL
 
     elt = string(key)
     # if letter, type
@@ -159,7 +198,7 @@ function on_key_down(g, key)
     elseif(elt == "RETURN")
         enemy_hit_count = 0
 
-        if !(input_txt in passwords) STATUS = "INVALID"; status_change("INVALID", 0) end
+        if !(input_txt in passwords) STATUS = "INVALID"; status_change("INVALID", 0); SCORE += INVALID_POINT end        
 
         for enemy in enemies
             if (input_txt in passwords && collide(target, enemy))
@@ -175,6 +214,8 @@ function on_key_down(g, key)
                 refresh_passwords!()
 
                 enemy_hit_count += 1
+                COMBO_COUNT += 1
+                SCORE += HIT_POINT
                 break
             end
         end
@@ -185,16 +226,21 @@ function on_key_down(g, key)
             filter!(e->e≠input_txt, passwords)
             push!(passwords, randstring(['Q', 'W', 'E', 'A', 'S', 'D'], PWD_LENGTH))
             refresh_passwords!()
+            
+            SCORE += (COMBO_COUNT^2 * COMBO_MULIPLIER + MISS_POINT)
+            COMBO_COUNT = 0 
         end
 
+        COMBO_LABEL = TextActor("Combo: $(COMBO_COUNT)", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=402, y = 645)
+        SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
         input_txt = ""
     end
-    
     input_disp = update_inp(input_txt)
 end
 
 function update(g::Game)
     global target 
+
     if(g.keyboard.K_1)
         ang_sp = DAMP * ANG_SPEED
         rad_sp = DAMP * RAD_SPEED
@@ -224,7 +270,7 @@ function update(g::Game)
 
     set_target_pos!(target)
 
-    global base_health, HEALTH_LABEL, HEALTH_BAR, STATUS_LABEL
+    global base_health, HEALTH_LABEL, HEALTH_BAR, STATUS_LABEL, COMBO_COUNT
 
     for enemy in enemies
         
@@ -245,6 +291,25 @@ function update(g::Game)
         end
     end
     
+    global WAVE_NUMBER, IS_WAVE_TRANSITION, SCORE, COMBO_LABEL, SCORE_LABEL
+
+    if (length(enemies) == 0 && !IS_WAVE_TRANSITION)
+        # Enemies
+        IS_WAVE_TRANSITION = true
+        WAVE_NUMBER += 1
+        
+        SCORE += (COMBO_COUNT^2 * COMBO_MULIPLIER + MISS_POINT)
+        COMBO_COUNT = 0
+        COMBO_LABEL = TextActor("Combo: $(COMBO_COUNT)", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=402, y = 645)
+        SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
+
+        wave_change_animation(5 + 2 * (WAVE_NUMBER - 1), 5, 0)
+    end
+
+    if (COMBO_COUNT == 5)
+
+    end
+
     # global LABEL
     # LABEL = TextActor("$(target.rad), $(target.y)", "helvetica", font_size = 18, color = Int[255, 255, 255, 255], x=target.x, y=target.y)
 end
@@ -266,7 +331,12 @@ function draw()
     end
         
     draw(target)
-    draw(HEALTH_LABEL)
+
     draw(HEALTH_BAR)
+
+    draw(HEALTH_LABEL)
     draw(STATUS_LABEL)
+    draw(WAVE_NUMBER_LABEL)
+    draw(SCORE_LABEL)
+    draw(COMBO_LABEL)
 end
