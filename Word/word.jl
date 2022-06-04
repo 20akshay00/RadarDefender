@@ -83,7 +83,6 @@ function wave_change_animation(num_enemies, delay, frame)
     else 
         WAVE_NUMBER_LABEL = TextActor("Wave $(WAVE_NUMBER)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 30)
         
-        IS_WAVE_TRANSITION = false
         enemies = [Actor("enemy", time_start = time(), time_passed = 0, time_delay = rand()/2) for i in 1:num_enemies]
         for enemy in enemies
             enemy.anchor = CENTER
@@ -93,6 +92,7 @@ function wave_change_animation(num_enemies, delay, frame)
             enemy.rsize = 5.5
             enemy.status = "ACTIVE"
         end
+        IS_WAVE_TRANSITION = false
     end
 end
 
