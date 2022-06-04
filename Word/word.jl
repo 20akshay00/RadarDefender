@@ -105,6 +105,7 @@ function boom_animation(frame)
         for enemy in enemies 
             if(enemy.rad <= 5 * frame && rand() < 0.1)
                 filter!(e->e≠enemy, enemies)
+                play_sound("boom")
             end
         end
         schedule_once(() -> boom_animation(frame + 1), 0.01)
@@ -250,6 +251,7 @@ function on_key_down(g, key)
                     status_change("HIT", 0)
                     # enemy_death_animation(enemy, 0)
                     filter!(e->e≠enemy, enemies)
+                    play_sound("explosion$(rand(1:4))")
 
                     filter!(e->e≠input_txt, passwords)
                     push!(passwords, randstring(['Q', 'W', 'E', 'A', 'S', 'D'], PWD_LENGTH))
@@ -257,7 +259,7 @@ function on_key_down(g, key)
 
                     enemy_hit_count += 1
                     COMBO_COUNT += 1
-                    if(COMBO_COUNT > 5 * (BOOM_FLAG))  BOOM_COUNT += 1; BOOM_FLAG +=1 end
+                    if(COMBO_COUNT >= 5 * (BOOM_FLAG))  BOOM_COUNT += 1; BOOM_FLAG +=1; play_sound("powerup") end
                     SCORE += HIT_POINT
                     break
                 end
@@ -298,6 +300,7 @@ function update(g::Game)
 
     if(GAME_STATUS == 0)
         if(g.keyboard.T)
+            play_sound("select")
             GAME_STATUS = 1
         end
 
@@ -347,6 +350,7 @@ function update(g::Game)
             if(enemy.rad < BASE_RADIUS)
                 filter!(e->e≠enemy, enemies)
                 base_health = clamp(base_health - 1, 0, 5)
+                play_sound("base_damage")
                 base_damage_animation(0)
                 HEALTH_LABEL = TextActor("Structural Integrity: $(base_health * 20)%", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=1010, y = 80)
                 HEALTH_BAR = Actor("health-$(base_health)", x = 1010, y = 30)
@@ -375,9 +379,11 @@ function update(g::Game)
 
     elseif(GAME_STATUS == -1)
         if g.keyboard.T
+            play_sound("select")
             init_game()
             GAME_STATUS = 1
         elseif g.keyboard.Q
+            play_sound("select")
             quit()
         end
     end
