@@ -1,4 +1,4 @@
-using Random
+using Random, Colors
 
 HEIGHT = 700
 WIDTH = 1200
@@ -14,15 +14,17 @@ ANG_SPEED = 0.02
 BOOST = 2.0
 DAMP = 0.1
 
-BASE_RADIUS = 20
+BASE_RADIUS = 23
 PWD_LENGTH = 4
-CENTER = [764, 334]
+# CENTER = [764, 334]
+CENTER = [787, 357]
 
 HIT_POINT = 10
 MISS_POINT = -10
 INVALID_POINT = -5
 COMBO_MULIPLIER = 1.5
 
+GAME_STATUS = 1
 
 function enemy_death_animation(targetted_enemy, frame)
     global enemies
@@ -38,7 +40,7 @@ function enemy_death_animation(targetted_enemy, frame)
     end
 end
 
-function get_status_display(status)
+function get_status_display(STATUS)
     if(STATUS == "LOCATING")
         st = TextActor("LOCATING...", "helvetica", font_size = 20, color = Int[106, 190, 48, 255], x=190, y = 484)
     elseif(STATUS == "MISS")
@@ -94,6 +96,41 @@ function wave_change_animation(num_enemies, delay, frame)
     end
 end
 
+function boom_animation(frame)
+    global IS_BOOM, BOOM_CIRCLE, enemies
+
+    if frame < 65
+        BOOM_CIRCLE = Circle(CENTER..., 5 * frame)
+        
+        for enemy in enemies 
+            if(enemy.rad <= 5 * frame && rand() < 0.1)
+                filter!(e->e≠enemy, enemies)
+            end
+        end
+        schedule_once(() -> boom_animation(frame + 1), 0.01)
+    else
+        BOOM_CIRCLE = nothing
+        IS_BOOM = false
+    end
+end
+
+function base_damage_animation(frame)
+    global BASE, base_health, GAME_STATUS
+    
+    if frame < (12 + (base_health <= 0))
+        if frame % 2 == 0
+            BASE.image = "enemy_empty.png"
+        else
+            BASE.image = "base.png"
+        end
+        schedule_once(() -> base_damage_animation(frame + 1), 0.1)
+    elseif base_health <= 0
+        boom_animation(0)
+    end
+
+    GAME_STATUS = 0
+end
+
 function update_inp(text)
     if(text == "") text = " " end
     return TextActor(text, "helvetica", font_size = 40, color = Int[106, 190, 48, 255], x=120, y=600)
@@ -128,7 +165,7 @@ for enemy in enemies
     enemy.anchor = CENTER
     enemy.rad, enemy.ang = rand(MIN_RAD:MAX_RAD), 6.28 * rand()
     enemy.pos = set_target_pos!(enemy)
-    enemy.speed = rand()/4
+    enemy.speed = rand()/2
     enemy.rsize = 5.5
     enemy.status = "ACTIVE"
 end
@@ -136,7 +173,7 @@ end
 # Cross hair
 target = Actor("crosshair")
 target.rad, target.ang = 200, 120
-target.anchor = CENTER
+target.anchor = [764, 334]
 target.rsize = 7.0
 set_target_pos!(target)
 
@@ -144,7 +181,7 @@ set_target_pos!(target)
 input_txt = ""
 input_disp = update_inp(input_txt)
 
-# LABEL = TextActor("$(target.x), $(target.y)", "helvetica", font_size = 18, color = Int[255, 255, 255, 255], x=target.x, y=target.y)
+LABEL = TextActor("$(target.x), $(target.y)", "helvetica", font_size = 18, color = Int[255, 255, 255, 255], x=target.x, y=target.y)
 
 # Launch codes
 passwords = [randstring(['Q', 'W', 'E', 'A', 'S', 'D'], PWD_LENGTH) for _ in 1:5]
@@ -157,6 +194,7 @@ passwords_disp = vcat(
 
 # Base health
 base_health = 5
+BASE = Actor("base", x = 768, y = 338)
 HEALTH_LABEL = TextActor("Structural Integrity: $(base_health * 20)%", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=1007, y = 80)
 HEALTH_BAR = Actor("health-5", x = 1010, y = 30)
 
@@ -175,15 +213,21 @@ WAVE_NUMBER = 1
 WAVE_NUMBER_LABEL = TextActor("Wave $(WAVE_NUMBER)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 30)
 IS_WAVE_TRANSITION = false
 
-# Combo counter
-
+# Score variables
 COMBO_COUNT = 0
 SCORE = 0
 SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
 COMBO_LABEL = TextActor("Combo: $(COMBO_COUNT)", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=402, y = 645)
 
+# Special ability
+BOOM_COUNT = 0
+BOOM_FLAG = 1
+BOOM_LABEL = TextActor("$(BOOM_COUNT)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=1150, y = 645)
+IS_BOOM = false
+BOOM_CIRCLE = nothing
+
 function on_key_down(g, key)
-    global input_txt, input_disp, enemies, target, passwords, passwords_disp, STATUS, COMBO_COUNT, SCORE, SCORE_LABEL, COMBO_LABEL
+    global input_txt, input_disp, enemies, target, passwords, passwords_disp, STATUS, COMBO_COUNT, SCORE, SCORE_LABEL, COMBO_LABEL, BOOM_COUNT, BOOM_FLAG, BOOM_LABEL, IS_BOOM
 
     elt = string(key)
     # if letter, type
@@ -198,7 +242,13 @@ function on_key_down(g, key)
     elseif(elt == "RETURN")
         enemy_hit_count = 0
 
-        if !(input_txt in passwords) STATUS = "INVALID"; status_change("INVALID", 0); SCORE += INVALID_POINT end        
+        if !(input_txt in passwords) 
+            STATUS = "INVALID"
+            status_change("INVALID", 0)
+            SCORE += (COMBO_COUNT^2 * COMBO_MULIPLIER + INVALID_POINT)
+            COMBO_COUNT = 0 
+            BOOM_FLAG = 1
+        end        
 
         for enemy in enemies
             if (input_txt in passwords && collide(target, enemy))
@@ -215,6 +265,7 @@ function on_key_down(g, key)
 
                 enemy_hit_count += 1
                 COMBO_COUNT += 1
+                if(COMBO_COUNT > 5 * (BOOM_FLAG))  BOOM_COUNT += 1; BOOM_FLAG +=1 end
                 SCORE += HIT_POINT
                 break
             end
@@ -229,12 +280,23 @@ function on_key_down(g, key)
             
             SCORE += (COMBO_COUNT^2 * COMBO_MULIPLIER + MISS_POINT)
             COMBO_COUNT = 0 
+            BOOM_FLAG = 1
         end
-
+        
+        BOOM_LABEL = TextActor("$(BOOM_COUNT)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=1150, y = 645)
         COMBO_LABEL = TextActor("Combo: $(COMBO_COUNT)", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=402, y = 645)
         SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
         input_txt = ""
+
+    elseif(elt == "SPACE" && !IS_BOOM)
+        if(BOOM_COUNT > 0)
+            IS_BOOM = true
+            BOOM_COUNT -= 1
+            BOOM_LABEL = TextActor("$(BOOM_COUNT)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=1150, y = 645)
+            boom_animation(0)
+        end
     end
+
     input_disp = update_inp(input_txt)
 end
 
@@ -286,12 +348,13 @@ function update(g::Game)
         if(enemy.rad < BASE_RADIUS)
             filter!(e->e≠enemy, enemies)
             base_health = clamp(base_health - 1, 0, 5)
+            base_damage_animation(0)
             HEALTH_LABEL = TextActor("Structural Integrity: $(base_health * 20)%", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=1010, y = 80)
             HEALTH_BAR = Actor("health-$(base_health)", x = 1010, y = 30)
         end
     end
     
-    global WAVE_NUMBER, IS_WAVE_TRANSITION, SCORE, COMBO_LABEL, SCORE_LABEL
+    global WAVE_NUMBER, IS_WAVE_TRANSITION, SCORE, COMBO_LABEL, SCORE_LABEL, BOOM_COUNT, BOOM_FLAG, BOOM_LABEL
 
     if (length(enemies) == 0 && !IS_WAVE_TRANSITION)
         # Enemies
@@ -299,9 +362,14 @@ function update(g::Game)
         WAVE_NUMBER += 1
         
         SCORE += (COMBO_COUNT^2 * COMBO_MULIPLIER + MISS_POINT)
+        if(COMBO_COUNT >= 5 * (BOOM_FLAG))  BOOM_COUNT += 1 end
+        
         COMBO_COUNT = 0
+        BOOM_FLAG = 1
+
         COMBO_LABEL = TextActor("Combo: $(COMBO_COUNT)", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=402, y = 645)
         SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
+        BOOM_LABEL = TextActor("$(BOOM_COUNT)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=1150, y = 645)
 
         wave_change_animation(5 + 2 * (WAVE_NUMBER - 1), 5, 0)
     end
@@ -310,33 +378,46 @@ function update(g::Game)
 
     end
 
-    # global LABEL
-    # LABEL = TextActor("$(target.rad), $(target.y)", "helvetica", font_size = 18, color = Int[255, 255, 255, 255], x=target.x, y=target.y)
+    global LABEL
+    LABEL = TextActor("$(target.x), $(target.y)", "helvetica", font_size = 18, color = Int[255, 255, 255, 255], x=target.x, y=target.y)
 end
 
 function draw()
-    draw(background)
-    for enemy in enemies
-        draw(enemy)
-    end
-    
-    draw(input_disp)
+    if GAME_STATUS == 1
+        draw(background)
+        draw(BASE)
 
-    for pwd in passwords_disp
-        draw(pwd)
-    end
-
-    for static in statics
-        draw(static)
-    end
+        for enemy in enemies
+            draw(enemy)
+        end
         
-    draw(target)
+        draw(input_disp)
 
-    draw(HEALTH_BAR)
+        for pwd in passwords_disp
+            draw(pwd)
+        end
 
-    draw(HEALTH_LABEL)
-    draw(STATUS_LABEL)
-    draw(WAVE_NUMBER_LABEL)
-    draw(SCORE_LABEL)
-    draw(COMBO_LABEL)
+        for static in statics
+            draw(static)
+        end
+            
+        draw(target)
+
+        draw(HEALTH_BAR)
+
+        if !isnothing(BOOM_CIRCLE)
+            draw(BOOM_CIRCLE, colorant"green")
+        end
+
+        draw(HEALTH_LABEL)
+        draw(STATUS_LABEL)
+        draw(WAVE_NUMBER_LABEL)
+        draw(SCORE_LABEL)
+        draw(COMBO_LABEL)
+        draw(BOOM_LABEL)
+        draw(LABEL)
+        
+    elseif GAME_STATUS == 0
+        pass
+    end
 end
