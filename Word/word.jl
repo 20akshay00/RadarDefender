@@ -105,7 +105,6 @@ function boom_animation(frame)
         for enemy in enemies 
             if(enemy.rad <= 5 * frame && rand() < 0.1)
                 filter!(e->e≠enemy, enemies)
-                play_sound("boom")
             end
         end
         schedule_once(() -> boom_animation(frame + 1), 0.01)
@@ -126,8 +125,8 @@ function base_damage_animation(frame)
         end
         schedule_once(() -> base_damage_animation(frame + 1), 0.1)
     elseif base_health <= 0
-        boom_animation(0)
         GAME_STATUS = -1
+        play_sound("boom")
     end
 end
 
@@ -287,6 +286,7 @@ function on_key_down(g, key)
                 IS_BOOM = true
                 BOOM_COUNT -= 1
                 BOOM_LABEL = TextActor("$(BOOM_COUNT)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=1150, y = 645)
+                play_sound("boom")
                 boom_animation(0)
             end
         end
@@ -374,7 +374,7 @@ function update(g::Game)
             SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
             BOOM_LABEL = TextActor("$(BOOM_COUNT)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=1150, y = 645)
 
-            wave_change_animation(5 + 2 * (WAVE_NUMBER - 1), 5, 0)
+            wave_change_animation(25 + 2 * (WAVE_NUMBER - 1), 5, 0)
         end
 
     elseif(GAME_STATUS == -1)
