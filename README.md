@@ -6,8 +6,9 @@ RadarDefender is a simple game made using GameZero.jl as an entry for the GameJa
 - GameZero.jl
 - Colors.jl
 
-# Objective
+To launch the game, open the Julia REPL from the root directory and run `using GameZero; GameZero.rungame(".\\RadarDefender\\RadarDefender.jl")`.
 
+# Objective
 Defend your base against the endless horde of invaders.
 
 # Controls
@@ -18,6 +19,7 @@ Defend your base against the endless horde of invaders.
 
 # Known Bugs
 - The `schedule_once()` functions from GameZero.jl is used to introduce delays in animations like the force-field ability, or wave progression. This seems buggy and sometimes gets stuck midway. I have no other workaround than to restart the game and hope it doesn't happen again.
+- Hitboxes don't match the visuals; this was intentional to keep the game easy.
 
 # Remarks
 - I got this idea for the game on the morning of 4th June 2022, with the deadline for the GameJam being 5th June 2022. So, the result is a ton of spagetti code thats unorganized and extremely messy. I might try to clean it up after the GameJam judging ends, to serve as an example game for GameZero.jl. 
