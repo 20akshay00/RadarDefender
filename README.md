@@ -1,4 +1,5 @@
 # RadarDefender
+![controls](./RadarDefender/images/start.png)
 
 RadarDefender is a simple game made using [GameZero.jl](https://github.com/aviks/GameZero.jl) as an entry for the GameJam held in the [Humans of Julia, Discord server](https://discord.com/channels/762167454973296644/775962287461629952).
 
@@ -10,11 +11,10 @@ To launch the game, open the Julia REPL from the root directory and run `using G
 
 ## Objective
 ![gameplay](./RadarDefender/images/gameplay.png)
+
 Defend your base against the endless horde of invaders.
 
 ## Controls
-![controls](./RadarDefender/images/start.png)
-
 - UP/DOWN to move the cross-hair radially. LEFT/RIGHT to move it along a circular arc.
 - TYPE the letters and press ENTER to submit the launch code and attack an invader.
 - HOLD 1 to slow down speed (for precise motion) and 2 to speed up.
