@@ -9,7 +9,7 @@ A demo video of the gameplay can be seen [here](https://youtu.be/jhMcW-pPb0k).
 - GameZero.jl
 - Colors.jl
 
-To launch the game, open the Julia REPL from the root directory and run `using GameZero; GameZero.rungame(".\\RadarDefender\\RadarDefender.jl")`.
+To launch the game, open the Julia REPL from the root directory and run `using GameZero; GameZero.rungame(".\\src\\RadarDefender.jl")`.
 
 ## Objective
 ![gameplay](./RadarDefender/images/gameplay.png)
