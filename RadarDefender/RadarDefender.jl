@@ -433,7 +433,7 @@ function draw()
         global SCORE, WAVE_NUMBER
         draw(end_background)
         draw(TextActor("$(SCORE)", "helvetica", font_size = 54, color = Int[106, 190, 48, 255], x=700, y = 234))
-        draw(TextActor("$(WAVE_NUMBER)", "helvetica", font_size = 54, color = Int[106, 190, 48, 255], x= 700, y = 330))
+        draw(TextActor("$(WAVE_NUMBER - 1)", "helvetica", font_size = 54, color = Int[106, 190, 48, 255], x= 700, y = 330))
     end
 end
 
