@@ -1,5 +1,5 @@
 # RadarDefender
-![controls](./RadarDefender/images/start.png)
+![controls](./src/images/start.png)
 
 RadarDefender is a simple game made using [GameZero.jl](https://github.com/aviks/GameZero.jl) as an entry for the GameJam held in the [Humans of Julia, Discord server](https://discord.com/channels/762167454973296644/775962287461629952). The art and sound effects were made using [Aseprite](https://www.aseprite.org/) and [jsfxr](https://sfxr.me/), respectively. 
 
@@ -9,10 +9,11 @@ A demo video of the gameplay can be seen [here](https://youtu.be/jhMcW-pPb0k).
 - GameZero.jl
 - Colors.jl
 
-To launch the game, open the Julia REPL from the root directory and run `using GameZero; GameZero.rungame(".\\src\\RadarDefender.jl")`.
+To launch the game, open the Julia REPL from the root directory and run:
+`using GameZero; GameZero.rungame(".\\src\\RadarDefender.jl")`
 
 ## Objective
-![gameplay](./RadarDefender/images/gameplay.png)
+![gameplay](./src/images/gameplay.png)
 
 Defend your base against the endless horde of invaders.
 
