@@ -3,6 +3,8 @@
 
 RadarDefender is a simple game made using [GameZero.jl](https://github.com/aviks/GameZero.jl) as an entry for the GameJam held in the [Humans of Julia, Discord server](https://discord.com/channels/762167454973296644/775962287461629952). The art and sound effects were made using [Aseprite](https://www.aseprite.org/) and [jsfxr](https://sfxr.me/), respectively. 
 
+A demo video of the gameplay can be seen [here](https://youtu.be/jhMcW-pPb0k).
+
 ## Requirements
 - GameZero.jl
 - Colors.jl
