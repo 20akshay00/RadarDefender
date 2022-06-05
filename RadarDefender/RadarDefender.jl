@@ -377,9 +377,12 @@ function update(g::Game)
             SCORE_LABEL = TextActor("Score: $(SCORE)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 610)
             BOOM_LABEL = TextActor("$(BOOM_COUNT)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=1150, y = 645)
 
-            wave_change_animation(5 + 2 * (WAVE_NUMBER - 1), 5, 0)
+            if(WAVE_NUMBER <= 4) 
+                wave_change_animation(5 + 2 * (WAVE_NUMBER - 1), 5, 0)
+            else 
+                wave_change_animation(11 + (WAVE_NUMBER - 4), 5, 0)
+            end
         end
-
     elseif(GAME_STATUS == -1)
         if g.keyboard.T
             play_sound("select")
