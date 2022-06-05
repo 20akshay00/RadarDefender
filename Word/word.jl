@@ -83,13 +83,16 @@ function wave_change_animation(num_enemies, delay, frame)
     else 
         WAVE_NUMBER_LABEL = TextActor("Wave $(WAVE_NUMBER)", "helvetica", font_size = 25, color = Int[106, 190, 48, 255], x=400, y = 30)
         
-        enemies = [Actor("enemy", time_start = time(), time_passed = 0, time_delay = rand()/2) for i in 1:num_enemies]
+        enemies = [Actor("enemy") for i in 1:num_enemies]
         for enemy in enemies
             enemy.anchor = CENTER
             enemy.rad, enemy.ang = rand(MIN_RAD:MAX_RAD), 6.28 * rand()
             enemy.pos = set_target_pos!(enemy)
             enemy.speed = rand()/4
             enemy.rsize = 5.5
+            enemy.angle = rad2deg(atan((enemy.pos[2] - enemy.anchor[2])/(enemy.pos[1] - enemy.anchor[1]))) - 90
+            if(enemy.x < enemy.anchor[1]) enemy.angle += 180 end
+
             enemy.status = "ACTIVE"
         end
         IS_WAVE_TRANSITION = false
@@ -186,7 +189,7 @@ passwords_disp = vcat(
 # Base health
 base_health = 5
 BASE = Actor("base", x = 768, y = 338)
-HEALTH_LABEL = TextActor("Structural Integrity: $(base_health * 20)%", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=1007, y = 80)
+HEALTH_LABEL = TextActor("Structural Integrity: $(base_health * 20)%", "helvetica", font_size = 15, color = Int[106, 190, 48, 255], x=1007, y = 74)
 HEALTH_BAR = Actor("health-5", x = 1010, y = 30)
 
 # Static elements
